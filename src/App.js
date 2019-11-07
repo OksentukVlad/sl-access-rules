@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.css';
 
 import { allOperations } from './access-rules';
@@ -176,12 +176,26 @@ const renderRulesTable = ({
 };
 
 function App() {
+  const allOperationsKeys = Object.keys(allOperations);
+  const [currentTableKey, changeTableKey] = useState(allOperationsKeys[0]);
+
   return (
     <div className="main">
       {
-        Object.keys(allOperations)
-          .map(key => renderRulesTable(allOperations[key], key))
+        allOperationsKeys
+          .map(key =>
+            <span
+              key={key}
+              className="menu-item"
+              style={key === currentTableKey ? { color: "blue" } : {}}
+              onClick={() => changeTableKey(key)}
+            >
+              {key}
+            </span>
+          )
       }
+
+      {renderRulesTable(allOperations[currentTableKey], currentTableKey)}
     </div>
   );
 }
