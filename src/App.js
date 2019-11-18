@@ -155,11 +155,11 @@ const renderRulesTable = ({
   __label = '',
   __commonRules = [],
   __commonComments,
-  ...operations,
+  ...operations
 }, key) => {
   return (
     <table key={key}>
-      <caption>{__label}</caption>
+      <caption className="table-title">{__label}</caption>
       <thead>
       <tr>
         <th>Operation Name</th>
@@ -181,21 +181,25 @@ function App() {
 
   return (
     <div className="main">
-      {
-        allOperationsKeys
-          .map(key =>
-            <span
-              key={key}
-              className="menu-item"
-              style={key === currentTableKey ? { color: "blue" } : {}}
-              onClick={() => changeTableKey(key)}
-            >
-              {key}
-            </span>
-          )
-      }
-
-      {renderRulesTable(allOperations[currentTableKey], currentTableKey)}
+      <div className="menu">
+        <ul>
+          {
+            allOperationsKeys
+              .map(key =>
+                <li
+                  key={key}
+                  className={`menu-item ${key === currentTableKey ? 'active' : ''}`}
+                  onClick={() => changeTableKey(key)}
+                >
+                  {key}
+                </li>
+              )
+          }
+        </ul>
+      </div>
+      <div className="main-content">
+        {renderRulesTable(allOperations[currentTableKey], currentTableKey)}
+      </div>
     </div>
   );
 }
