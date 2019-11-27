@@ -281,7 +281,7 @@ const groupMembersMutations = {
   ],
 
   addGroupUser: {
-    rules: [rules.USER_EXISTS, { $or: [rules.ME, rules.GROUP_OWNER, roles.ADMIN] }],
+    rules: [rules.USER_EXISTS, { $or: [rules.ME, rules.GROUP_OWNER, rules.ADMIN] }],
   },
   removeGroupUser: {
     rules: [rules.USER_EXISTS, complexRules.ADMIN_OR_FACILITATOR, rules.GROUP_OWNER],
@@ -587,58 +587,80 @@ const organisationsQueries = {
 
 const cardsQueries = {
   __label: 'CARDS (MOTIVATIONAL FACTORS, DEV AREA, TOP PRIORITIES) QUERIES',
-  card: false,
-  cards: false, // deprecated
+  __commonRules: [rules.LOGGED_IN],
+  card: {},
+  cards: { deprecated: true },
 };
 
 const valueCategoriesQueries = {
   __label: 'VALUE CATEGORIES QUERIES',
-  categories: false,
+  categories: {},
 };
 
 const valuesQueries = {
   __label: 'VALUES QUERIES',
-  values: false,
+  values: {},
 };
 
 const meetingsQueries = {
   __label: 'MEETINGS (SESSIONS) QUERIES',
-  meeting: false,
-  meetings: false,
+  __commonRules: [rules.LOGGED_IN],
+  __commonComments: [
+    'We might want to check ownership and/or access rights for meeting/meetings',
+  ],
+  meeting: {},
+  meetings: {},
 };
 
 const exercisesQueries = {
   __label: 'EXERCISES (GROUP MODULES) QUERIES',
-  activeExercise: false,
-  exercise: false,
-  exercises: false,
+  __commonRules: [rules.LOGGED_IN],
+  __commonComments: [
+    'We might want to check ownership and access rights for exercise',
+  ],
+  activeExercise: {},
+  exercise: {},
+  exercises: {},
 };
 
 const modulesQueries = {
   __label: 'MODULES QUERIES',
-  modules: false,
+  modules: {
+    rules: [rules.LOGGED_IN],
+    comments: ['If current user is admin, he gets beta modules in addition'],
+  },
 };
 
 const ownQuestionsQueries = {
   __label: 'OWN QUESTIONS QUERIES',
-  ownQuestions: false,
+  ownQuestions: {
+    rules: [rules.LOGGED_IN],
+  },
 };
 
 const presentationsQueries = {
   __label: 'PRESENTATIONS QUERIES',
-  presentations: false,
-  currentPresentation: false,
+  __commonRules: [rules.LOGGED_IN],
+  presentations: {
+    rules: [rules.GROUP_EXISTS],
+  },
+  currentPresentation: {},
 };
 
 const strengthsQueries = {
   __label: 'STRENGTHS QUERIES',
-  strengths: false,
+  strengths: {
+    rules: [rules.LOGGED_IN, 'name argument has to be not empty'],
+  },
 };
 
 const tagsQueries = {
   __label: 'TAGS QUERIES',
-  tag: false,
-  tags: false,
+  __commonRules: [rules.LOGGED_IN],
+  tag: {},
+  tags: {
+    rules: [complexRules.ADMIN_OR_FACILITATOR],
+  },
 };
 
 const usersQueries = {
@@ -722,16 +744,16 @@ export const allOperations = {
 
   groupsQueries,
   organisationsQueries,
-  // cardsQueries,
-  // valueCategoriesQueries,
-  // valuesQueries,
-  // meetingsQueries,
-  // exercisesQueries,
-  // modulesQueries,
-  // ownQuestionsQueries,
-  // presentationsQueries,
-  // strengthsQueries,
-  // tagsQueries,
+  cardsQueries,
+  valueCategoriesQueries,
+  valuesQueries,
+  meetingsQueries,
+  exercisesQueries,
+  modulesQueries,
+  ownQuestionsQueries,
+  presentationsQueries,
+  strengthsQueries,
+  tagsQueries,
   usersQueries,
   usersDataQueries,
   languagesQueries,

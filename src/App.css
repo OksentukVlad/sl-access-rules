@@ -63,6 +63,9 @@ tr {
 tr:hover {
   background-color: rgba(242,242,242,0.5);
 }
+tr.highlighted {
+  background-color: rgba(0, 0, 255, 0.2);
+}
 thead tr:hover {
   background-color: #fff;
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './App.css';
 
 import { allOperations } from './access-rules';
+import useLocalStorage from './useLocalStorage';
 
 const isString = val => (typeof val === 'string') || (val instanceof String);
 
@@ -131,11 +132,11 @@ const renderRules = (r) => {
     }, []);
 };
 
-const renderRows = (a, commonRules = [], commonComments = []) => {
+const renderRows = (a, commonRules = [], commonComments = [], highlight) => {
   return Object.keys(a).map(name => (
-    <tr key={name}>
+    <tr key={name} className={a[name].classes}>
       <td>{name}</td>
-      <td></td>
+      <td>{a[name].deprecated ? 'Deprecated' : ''}</td>
       <td>
         {renderRules([...commonRules, ...(a[name].rules || [])])}
       </td>
@@ -147,6 +148,9 @@ const renderRows = (a, commonRules = [], commonComments = []) => {
             ))
         }
       </td>
+      <td>
+        <button onClick={() => highlight(name)}>Highlight</button>
+      </td>
     </tr>
   ));
 };
@@ -156,7 +160,7 @@ const renderRulesTable = ({
   __commonRules = [],
   __commonComments,
   ...operations
-}, key) => {
+}, key, highlight) => {
   return (
     <table key={key}>
       <caption className="table-title">{__label}</caption>
@@ -166,10 +170,11 @@ const renderRulesTable = ({
         <th>Operation Description</th>
         <th>Rules</th>
         <th>Proposed changes and comments</th>
+        <th>Actions</th>
       </tr>
       </thead>
       <tbody>
-      {renderRows(operations, __commonRules, __commonComments)}
+      {renderRows(operations, __commonRules, __commonComments, name => highlight(`${key}.${name}`))}
       </tbody>
     </table>
   );
@@ -178,11 +183,48 @@ const renderRulesTable = ({
 function App() {
   const allOperationsKeys = Object.keys(allOperations);
   const [currentTableKey, changeTableKey] = useState(allOperationsKeys[0]);
+  const [highlightedMap, updateHighlightedMap] = useLocalStorage('highlighted', {});
+  const [commentsMap, updateCommentsMap] = useLocalStorage('comments', {});
+  const showHighlightedKey = 'HIGHLIGHTED';
+  const commentedKey = 'COMMENTED';
+
+  const toggleHighlight = key => {
+    const { [key]: currKeyValue, ...rest } = highlightedMap;
+
+    if (currKeyValue) {
+      updateHighlightedMap(rest);
+    } else {
+      updateHighlightedMap({
+        ...rest,
+        [key]: true,
+      });
+    }
+  };
+
+  if (showHighlightedKey !== currentTableKey && commentedKey !== currentTableKey) {
+    Object.keys(allOperations[currentTableKey]).forEach(key => {
+      if (key.indexOf('__') === 0) return;
+
+      allOperations[currentTableKey][key].classes = highlightedMap[`${currentTableKey}.${key}`] ? 'highlighted' : '';
+    });
+  }
 
   return (
     <div className="main">
       <div className="menu">
         <ul>
+          <li
+            className={`menu-item ${showHighlightedKey === currentTableKey ? 'active' : ''}`}
+            onClick={() => changeTableKey(showHighlightedKey)}
+          >
+            {showHighlightedKey}
+          </li>
+          {/*<li*/}
+          {/*  className={`menu-item ${commentedKey === currentTableKey ? 'active' : ''}`}*/}
+          {/*  onClick={() => changeTableKey(commentedKey)}*/}
+          {/*>*/}
+          {/*  {commentedKey}*/}
+          {/*</li>*/}
           {
             allOperationsKeys
               .map(key =>
@@ -198,7 +240,114 @@ function App() {
         </ul>
       </div>
       <div className="main-content">
-        {renderRulesTable(allOperations[currentTableKey], currentTableKey)}
+        {
+          currentTableKey !== showHighlightedKey
+            ? renderRulesTable(allOperations[currentTableKey], currentTableKey, toggleHighlight)
+            : (
+              <table>
+                <caption className="table-title">{showHighlightedKey}</caption>
+                <thead>
+                <tr>
+                  <th>Operation Name</th>
+                  <th>Operation Description</th>
+                  <th>Rules</th>
+                  <th>Proposed changes and comments</th>
+                  <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {
+                  Object.keys(allOperations)
+                    .reduce((acc, tableKey) => {
+                      const {
+                        __label = '',
+                        __commonRules = [],
+                        __commonComments = [],
+                        ...operations
+                      } = allOperations[tableKey];
+
+                      const highlightedOperations = Object.keys(operations).reduce((hAcc, oKey) => {
+                        const operation = operations[oKey];
+                        const cacheName = `${tableKey}.${oKey}`;
+
+                        if (!highlightedMap[cacheName]) return hAcc;
+
+                        return [
+                          ...hAcc,
+                          {
+                            name: oKey,
+                            cacheName,
+                            ourComments: commentsMap[cacheName] || [],
+                            ...operation,
+                          },
+                        ];
+                      }, []);
+
+                      return acc.concat(
+                        highlightedOperations.map(operation => ({
+                          ...operation,
+                          rules: [...(__commonRules || []), ...(operation.rules || [])],
+                          comments: [...(__commonComments || []), ...(operation.comments || [])],
+                        }))
+                      );
+                    }, [])
+                    .map(({ name, rules, comments, cacheName, ourComments, deprecated }) => (
+                      <tr key={name} className="highlighted">
+                        <td>{name}</td>
+                        <td>{deprecated ? 'Deprecated' : ''}</td>
+                        <td>
+                          {renderRules(rules)}
+                        </td>
+                        <td>
+                          {
+                            comments
+                              .map(comment => (
+                                <p key={comment}>{comment}</p>
+                              ))
+                          }
+                          {
+                            ourComments
+                              .map(comment => (
+                                <p
+                                  key={comment}
+                                  style={{ color: 'green' }}
+                                >
+                                  {comment}
+                                  <span
+                                    onClick={() => {
+                                      updateCommentsMap({
+                                        ...commentsMap,
+                                        [cacheName]: ourComments.filter(c => c !== comment),
+                                      })
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >[X]</span>
+                                </p>
+                              ))
+                          }
+                          <input type="text" onKeyDown={(e) => {
+                            if (e.keyCode === 13 && e.target.value && e.target.value.trim()) {
+                              updateCommentsMap({
+                                ...commentsMap,
+                                [cacheName]: [
+                                  ...ourComments,
+                                  e.target.value.trim(),
+                                ],
+                              });
+                              e.target.value = '';
+                            }
+                          }}/>
+                        </td>
+                        <td>
+                          <button onClick={() => toggleHighlight(cacheName)}>Un-Highlight</button>
+                        </td>
+                      </tr>
+                    ))
+                }
+                </tbody>
+              </table>
+            )
+        }
       </div>
     </div>
   );
